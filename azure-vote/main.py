@@ -28,7 +28,7 @@ stats = stats_module.stats
 view_manager = stats.view_manager
 
 # Logging
-# TODO: Setup logger  
+# Setup logger  
 config_integration.trace_integrations(['logging'])
 config_integration.trace_integrations(['requests'])
 # Standard Logging
