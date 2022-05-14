@@ -85,65 +85,59 @@ else:
     title = app.config['TITLE']
 
 # Redis Connection
-r = redis.Redis()
+redisConnection = redis.Redis()
 
 # Change title to host name to demo NLB
 if app.config['SHOWHOST'] == "true":
     title = socket.gethostname()
 
 # Init Redis
-if not r.get(button1): r.set(button1,0)
-if not r.get(button2): r.set(button2,0)
+if not redisConnection.get(button1): 
+    redisConnection.set(button1,0)
+if not redisConnection.get(button2): 
+    redisConnection.set(button2,0)
 
+# Flask API Endpoiints
 @app.route('/', methods=['GET', 'POST'])
 def index():
-
     if request.method == 'GET':
-
-        # Get current values
-        vote1 = r.get(button1).decode('utf-8')
+        # Get current values from DB
+        vote1 = redisConnection.get(button1).decode('utf-8')
+        vote2 = redisConnection.get(button2).decode('utf-8')
         # use tracer object to trace cat vote
         with tracer.span(name="Cats Vote") as span:
             print("Cats Vote")
-        vote2 = r.get(button2).decode('utf-8')
         # use tracer object to trace dog vote
         with tracer.span(name="Dogs Vote") as span:
             print("Dogs Vote")
         # Return index with values
         return render_template("index.html", value1=int(vote1), value2=int(vote2), button1=button1, button2=button2, title=title)
-
     elif request.method == 'POST':
-
         if request.form['vote'] == 'reset':
-
             # Empty table and return results
-            r.set(button1,0)
-            r.set(button2,0)
-            vote1 = r.get(button1).decode('utf-8')
+            redisConnection.set(button1,0)
+            redisConnection.set(button2,0)
+            vote1 = redisConnection.get(button1).decode('utf-8')
             properties = {'custom_dimensions': {'Cats Vote': vote1}}
             # use logger object to log cat vote
             logger.info('Cats Vote', extra=properties)
-
-            vote2 = r.get(button2).decode('utf-8')
+            vote2 = redisConnection.get(button2).decode('utf-8')
             properties = {'custom_dimensions': {'Dogs Vote': vote2}}
             # use logger object to log dog vote
             logger.info('Dogs Vote', extra=properties)
-            
             return render_template("index.html", value1=int(vote1), value2=int(vote2), button1=button1, button2=button2, title=title)
-
         else:
-
             # Insert vote result into DB
             vote = request.form['vote']
-            r.incr(vote,1)
+            redisConnection.incr(vote,1)
 
             # Get current values
-            vote1 = r.get(button1).decode('utf-8')
+            vote1 = redisConnection.get(button1).decode('utf-8')
             properties = {'custom_dimensions': {'Cats Vote': vote1}}
             # use logger object to log cat vote
             logger.info('Cats Vote', extra=properties)
             
-            vote2 = r.get(button2).decode('utf-8')
+            vote2 = redisConnection.get(button2).decode('utf-8')
             properties = {'custom_dimensions': {'Dogs Vote': vote2}}
             # use logger object to log dog vote
             logger.info('Dogs Vote', extra=properties)
@@ -152,7 +146,7 @@ def index():
             return render_template("index.html", value1=int(vote1), value2=int(vote2), button1=button1, button2=button2, title=title)
 
 if __name__ == "__main__":
-    # TODO: Use the statement below when running locally
+    # Use the statement below when running locally
     app.run() 
     # TODO: Use the statement below before deployment to VMSS
     # app.run(host='0.0.0.0', threaded=True, debug=True) # remote
